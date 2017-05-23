@@ -10,7 +10,7 @@
 
 #### 简单介绍：
 - 通过命令格式创建`time.Time`
-- 简洁的Api格式，`轻度且可拆分的函数库`
+- 简洁的Api格式，轻度且可拆分的函数库
 - 快速创建调度器
 - 可控的调度器时间粒度
 - 高性能的并发调度
@@ -47,6 +47,16 @@ go get -u -v github.com/koangel/grapeTimer
 
 ```go
 	vtime, err := grapeTimer.Parser("Day 13:59:59") // 返回值为标准的*time.Time
+	if err != nil {
+		// 处理错误...
+	}
+
+    vtime, err = grapeTimer.Parser("Week 6 23:59:59")
+	if err != nil {
+		// 处理错误...
+	}
+
+	vtime, err = grapeTimer.Parser("Month 26 13:59:59")
 	if err != nil {
 		// 处理错误...
 	}
