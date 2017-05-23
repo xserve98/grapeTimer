@@ -6,11 +6,11 @@
 
 - Author: Koangel
 - Blog: [http://koangel.github.com](http://koangel.github.com)
-- Webo: [@koangel](http://weibo.com/koangel)
+- Weibo: [@koangel](http://weibo.com/koangel)
 
 #### 简单介绍：
 - 通过命令格式创建`time.Time`
-- 简洁的Api格式
+- 简洁的Api格式，`轻度且可拆分的函数库`
 - 快速创建调度器
 - 可控的调度器时间粒度
 - 高性能的并发调度
