@@ -7,6 +7,7 @@
 - Author: Koangel
 - Blog: [http://koangel.github.com](http://koangel.github.com)
 - Weibo: [@koangel](http://weibo.com/koangel)
+- Homepage: [未完成](http://blog.grapego.vip)
 
 #### 简单介绍：
 - 通过命令格式创建`time.Time`
@@ -15,8 +16,8 @@
 - 可控的调度器时间粒度
 - 高性能的并发调度
 - 时间周期，次数多模式可控`[支持每天，每周，每月]`
-- 可选择对调度器保存或内存执行
-- 生成可保存的调度器字符串并反向分析他生成调度器
+- *可选择对调度器保存或内存执行[待实现]
+- *生成可保存的调度器字符串并反向分析他生成调度器[待实现]
 - 不依赖第三方库
 
 ## **安装方法**
@@ -51,7 +52,7 @@ go get -u -v github.com/koangel/grapeTimer
 		// 处理错误...
 	}
 
-    vtime, err = grapeTimer.Parser("Week 6 23:59:59")
+        vtime, err = grapeTimer.Parser("Week 6 23:59:59")
 	if err != nil {
 		// 处理错误...
 	}

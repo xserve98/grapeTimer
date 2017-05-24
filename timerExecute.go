@@ -2,3 +2,171 @@
 /// jackliu100@gmail.com
 /// 每个单独的执行模块，结构中越简单越好
 package grapeTimer
+
+import (
+	"encoding/json"
+	"log"
+	"strconv"
+	"time"
+)
+
+const (
+	// 通过字符串转换下一次的日期
+	timerDateMode = iota
+	// 通过转成的Tick日期进行下一次时间计算
+	timerTickMode
+)
+
+type GrapeExecFn func(timerId int, args interface{})
+
+// 每个执行周期的执行者
+// 每个时间执行器
+// 可Json化并反Json化
+type GrapeTimer struct {
+	Id        int    `json:"TimerId"`
+	NextTime  int64  `json:"nextUnix"`
+	RunMode   int    `json:"Mode"`
+	TimeData  string `json:"timeData"`
+	LoopCount int    `json:"loopCount"` // -1为无限执行
+
+	exectFunc  GrapeExecFn // 执行的函数 不保存
+	execArgs   interface{} // 执行参数 外部不可访问和改变
+	tickSecond int         // 临时使用 不可保存
+}
+
+/// 直接创建一个timer 内部函数
+func newTimer(Id, Mode, Count int, timeData string, fn GrapeExecFn, args interface{}) *GrapeTimer {
+	newValue := &GrapeTimer{
+		Id:         Id,
+		RunMode:    Mode,
+		TimeData:   timeData,
+		LoopCount:  Count,
+		NextTime:   0,
+		tickSecond: 0,
+
+		execArgs:  args,
+		exectFunc: fn,
+	}
+
+	newValue.nextTime()
+
+	return newValue
+}
+
+/// 通过Json创建一个Timer 内部函数
+func newTimerFromJson(s string, fn GrapeExecFn, args interface{}) *GrapeTimer {
+	newValue := &GrapeTimer{}
+	newValue = newValue.ParserJson(s)
+	if newValue != nil {
+		newValue.exectFunc = fn
+		newValue.execArgs = args
+		newValue.nextTime()
+	}
+
+	return newValue
+}
+
+/// 执行Timer
+func (c *GrapeTimer) Execute() {
+	if c.IsDestroy() {
+		return // 销毁中的不可执行
+	}
+
+	if c.IsExpired() {
+		if CDebugMode {
+			log.Printf("[grapeTimer] Timer Execute:%v |time:%v| Begin", c.Id, time.Now())
+		}
+		// 执行一下
+		c.exectFunc(c.Id, c.execArgs)
+
+		if CDebugMode {
+			log.Printf("[grapeTimer] Timer Execute:%v |time:%v| End", c.Id, time.Now())
+		}
+
+		c.nextTime() // 计数
+	}
+}
+
+/// 是否到时间
+func (c *GrapeTimer) IsExpired() bool {
+	if time.Now().Unix() >= c.NextTime {
+		if CDebugMode {
+			log.Printf("[grapeTimer] Timer Expired:%v |time:%v|", c.Id, time.Now())
+		}
+		return true
+	}
+
+	return false
+}
+
+/// 是否可销毁
+func (c *GrapeTimer) IsDestroy() bool {
+	if c.LoopCount == -1 {
+		return false
+	}
+
+	if c.LoopCount == 0 {
+		return true
+	}
+
+	return false
+}
+
+/// 计算下一次时间
+func (c *GrapeTimer) nextTime() {
+	if c.IsDestroy() {
+		return
+	}
+
+	// 先进行计数
+	if c.LoopCount != -1 {
+		c.LoopCount--
+		if c.LoopCount <= 0 {
+			c.LoopCount = 0
+		}
+	}
+
+	if CDebugMode {
+		log.Printf("[grapeTimer] Timer NextTime:%v |time:%v|LoopCount:%v|", c.Id, time.Now(), c.LoopCount)
+	}
+
+	switch c.RunMode {
+	case timerDateMode:
+		vtime, err := Parser(c.TimeData)
+		if err != nil {
+			c.LoopCount = 0 // 出错销毁
+			log.Printf("[grapeTimer] Timer NextTime:%v |time:%v|Error:%v|", c.Id, time.Now(), err)
+			return
+		}
+
+		c.NextTime = vtime.Unix() // 生成下一次时间
+		break
+	case timerTickMode:
+		if c.tickSecond == 0 {
+			c.tickSecond, _ = strconv.Atoi(c.TimeData)
+		}
+
+		c.NextTime = time.Now().Unix() + int64(c.tickSecond)
+		break
+	}
+}
+
+func (c *GrapeTimer) toJson() string {
+	bJson, err := json.Marshal(c)
+	if err != nil {
+		log.Printf("[grapeTimer] toJson:%v|Error:%v|", c.Id, err)
+		return ""
+	}
+
+	return string(bJson)
+}
+
+func (c *GrapeTimer) ParserJson(s string) *GrapeTimer {
+	err := json.Unmarshal([]byte(s), c)
+	if err != nil {
+		log.Printf("[grapeTimer] ParserJson:%v|Error:%v|", c.Id, err)
+		return nil
+	}
+
+	return c
+}

@@ -6,6 +6,7 @@ package grapeTimer
 import (
 	"errors"
 	"fmt"
+	"log"
 	"regexp"
 	"strconv"
 	"strings"
@@ -78,7 +79,7 @@ func AtTime(timeFmt string, loc *time.Location) (*time.Time, error) {
 /// 返回一个处理好的下一个时间
 func Parser(dateFmt string) (*time.Time, error) {
 	// 默认使用上海时区
-	loc, _ := time.LoadLocation("Asia/Shanghai")
+	loc, _ := time.LoadLocation(LocationFormat)
 	return ParserLoc(dateFmt, loc)
 }
 
@@ -100,6 +101,10 @@ func ParserLoc(dateFmt string, loc *time.Location) (*time.Time, error) {
 
 		if cnowTime.After(*vtime) {
 			*vtime = (*vtime).AddDate(0, 0, 1) // 一天之后的时间
+		}
+
+		if CDebugMode {
+			log.Printf("[grapeTimer] Day Parser:%v", *vtime)
 		}
 
 		return vtime, nil // 返回日期
@@ -124,6 +129,10 @@ func ParserLoc(dateFmt string, loc *time.Location) (*time.Time, error) {
 			*vtime = (*vtime).AddDate(0, 0, weekDiff)
 		}
 
+		if CDebugMode {
+			log.Printf("[grapeTimer] Week Parser:%v", *vtime)
+		}
+
 		return vtime, nil // 返回日期
 	} else if MonthCRegexp.MatchString(dateFmt) {
 		dayNum, _ := strconv.Atoi(dayst[1])
@@ -143,6 +152,10 @@ func ParserLoc(dateFmt string, loc *time.Location) (*time.Time, error) {
 
 		if cnowTime.After(vtime) {
 			vtime = vtime.AddDate(0, 1, 0)
+		}
+
+		if CDebugMode {
+			log.Printf("[grapeTimer] Month Parser:%v", vtime)
 		}
 
 		return &vtime, nil
