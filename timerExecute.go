@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"log"
 	"strconv"
+	"sync/atomic"
 	"time"
 )
 
@@ -27,7 +28,7 @@ type GrapeTimer struct {
 	NextTime  int64  `json:"nextUnix"`
 	RunMode   int    `json:"Mode"`
 	TimeData  string `json:"timeData"`
-	LoopCount int    `json:"loopCount"` // -1为无限执行
+	LoopCount int32  `json:"loopCount"` // -1为无限执行
 
 	exectFunc  GrapeExecFn // 执行的函数 不保存
 	execArgs   interface{} // 执行参数 外部不可访问和改变
@@ -40,7 +41,7 @@ func newTimer(Id, Mode, Count int, timeData string, fn GrapeExecFn, args interfa
 		Id:         Id,
 		RunMode:    Mode,
 		TimeData:   timeData,
-		LoopCount:  Count,
+		LoopCount:  int32(Count),
 		NextTime:   0,
 		tickSecond: 0,
 
@@ -77,7 +78,11 @@ func (c *GrapeTimer) Execute() {
 			log.Printf("[grapeTimer] Timer Execute:%v |time:%v| Begin", c.Id, time.Now())
 		}
 		// 执行一下
-		c.exectFunc(c.Id, c.execArgs)
+		if UseAsyncExec {
+			go c.exectFunc(c.Id, c.execArgs)
+		} else {
+			c.exectFunc(c.Id, c.execArgs)
+		}
 
 		if CDebugMode {
 			log.Printf("[grapeTimer] Timer Execute:%v |time:%v| End", c.Id, time.Now())
@@ -101,11 +106,12 @@ func (c *GrapeTimer) IsExpired() bool {
 
 /// 是否可销毁
 func (c *GrapeTimer) IsDestroy() bool {
-	if c.LoopCount == -1 {
+	val := atomic.LoadInt32(&c.LoopCount)
+	if val == -1 {
 		return false
 	}
 
-	if c.LoopCount == 0 {
+	if val == 0 {
 		return true
 	}
 
@@ -118,11 +124,13 @@ func (c *GrapeTimer) nextTime() {
 		return
 	}
 
+	val := atomic.LoadInt32(&c.LoopCount)
 	// 先进行计数
-	if c.LoopCount != -1 {
-		c.LoopCount--
-		if c.LoopCount <= 0 {
-			c.LoopCount = 0
+	if val != -1 {
+		atomic.AddInt32(&c.LoopCount, -1)
+		val = atomic.LoadInt32(&c.LoopCount)
+		if val <= 0 {
+			val = 0
 		}
 	}
 
@@ -134,7 +142,7 @@ func (c *GrapeTimer) nextTime() {
 	case timerDateMode:
 		vtime, err := Parser(c.TimeData)
 		if err != nil {
-			c.LoopCount = 0 // 出错销毁
+			atomic.StoreInt32(&c.LoopCount, 0) // 出错销毁
 			log.Printf("[grapeTimer] Timer NextTime:%v |time:%v|Error:%v|", c.Id, time.Now(), err)
 			return
 		}
