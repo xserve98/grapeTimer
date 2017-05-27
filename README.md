@@ -33,26 +33,26 @@ go get -u -v github.com/koangel/grapeTimer
 grapeTimer.InitGrapeScheduler(1*time.Second, true)
 // 启动一个单次执行的调度器，1秒时间，基本tick单位为毫秒
 Id := grapeTimer.NewTickerOnce(1000, exec100, nil)
-// 启动一个1秒为周期的 循环timer
-Id = grapeTimer.NewTickerLoop(1000, exec100Loop, nil)
+// 启动一个1秒为周期的 循环timer 循环100次 -1为永久循环
+Id = grapeTimer.NewTickerLoop(1000,100, exec100Loop, nil)
 // 启动一个每日规则的定时器，参数为args data
 Id = grapeTimer.NewTimeDataOnce("Day 13:59:59", exeDayTime, "args data")
-// 启动一个每日循环规则的定时器，参数为args data
-Id = grapeTimer.NewTimeDataLoop("Day 13:59:59", exeDayTime, "args data")
+// 启动一个每日循环规则的定时器，参数为args data 循环100次 -1为永久循环
+Id = grapeTimer.NewTimeDataLoop("Day 13:59:59",100, exeDayTime, "args data")
 ```
 
 所有执行函数请保持以下函数格式：
 ```
-func exec100(args interface{}) {
+func exec100(timerId int, args interface{}) {
 	fmt.Printf("exec100")
 }
 
-func exec100Loop(args interface{}) {
+func exec100Loop(timerId int, args interface{}) {
 	fmt.Printf("exec100Loop")
 }
 
-func exeDayTime(args interface{}) {
-
+func exeDayTime(timerId int, args interface{}) {
+	fmt.Println("exeDayTime:", args)
 }
 ```
 ## **停止计时器**
