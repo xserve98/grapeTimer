@@ -159,6 +159,10 @@ func (c *GrapeTimer) nextTime() {
 	}
 }
 
+func (c *GrapeTimer) Stop() {
+	atomic.StoreInt32(&c.LoopCount, 0) // 停止这个timer继续执行
+}
+
 func (c *GrapeTimer) toJson() string {
 	bJson, err := json.Marshal(c)
 	if err != nil {

@@ -28,9 +28,62 @@ go get -u -v github.com/koangel/grapeTimer
 
 ## **基本用法**
 
+``` Go
+// 初始化一个1秒钟粒度的调度器，ars代表是否自动设置运行为并行模式
+grapeTimer.InitGrapeScheduler(1*time.Second, true)
+// 启动一个单次执行的调度器，1秒时间，基本tick单位为毫秒
+Id := grapeTimer.NewTickerOnce(1000, exec100, nil)
+// 启动一个1秒为周期的 循环timer
+Id = grapeTimer.NewTickerLoop(1000, exec100Loop, nil)
+// 启动一个每日规则的定时器，参数为args data
+Id = grapeTimer.NewTimeDataOnce("Day 13:59:59", exeDayTime, "args data")
+// 启动一个每日循环规则的定时器，参数为args data
+Id = grapeTimer.NewTimeDataLoop("Day 13:59:59", exeDayTime, "args data")
+```
+
+所有执行函数请保持以下函数格式：
+```
+func exec100(args interface{}) {
+	fmt.Printf("exec100")
+}
+
+func exec100Loop(args interface{}) {
+	fmt.Printf("exec100Loop")
+}
+
+func exeDayTime(args interface{}) {
+
+}
+```
+## **停止计时器**
+
+```Go
+// 将自动返回的ID作为参数传入可停止持续循环的TIMER
+grapeTimer.StopTimer(Id)
+```
+
+## **参数设置**
+
+```
+// 设置启用日志调试模式，建议正式版本关闭他
+grapeTimer.CDebugMode = true
+// 调用分析器使用的时区，可以个根据不同国家地区设置 
+grapeTimer.LocationFormat = "Asia/Shanghai"
+// 开启异步调度模式，在此模式下 timer执行时会建立一个go，不会阻塞其他timer执行调度，建议开启
+grapeTimer.UseAsyncExec = true
+```
+
 ## **保存调度器**
 
+```
+待添加
+```
+
 ## **生成调度器字符串**
+
+```
+待添加
+```
 
 ## **可用格式说明**
 

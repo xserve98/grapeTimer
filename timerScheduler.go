@@ -7,6 +7,7 @@ import (
 	"container/list"
 	"runtime"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -35,6 +36,8 @@ type GrapeScheduler struct {
 
 	timerContiner *list.List
 	autoId        int // 自动计数的Id
+
+	listLocker sync.Mutex
 }
 
 var GScheduler *GrapeScheduler = nil
@@ -66,6 +69,25 @@ func InitGrapeScheduler(t time.Duration, ars bool) {
 	go GScheduler.procScheduler() // 启动执行线程
 }
 
+// 停止这个timer
+func (c *GrapeScheduler) StopTimer(Id int) {
+	c.listLocker.Lock()
+	defer c.listLocker.Unlock()
+
+	for e := c.timerContiner.Front(); e != nil; e = e.Next() {
+		vnTimer := e.Value.(*GrapeTimer)
+		if vnTimer.IsDestroy() {
+			continue
+		}
+
+		if vnTimer.Id == Id {
+			vnTimer.Stop()
+			c.closedTimer <- vnTimer
+			return
+		}
+	}
+}
+
 func (c *GrapeScheduler) procScheduler() {
 	defer func() {
 		close(c.appendTimer)
@@ -78,6 +100,7 @@ func (c *GrapeScheduler) procScheduler() {
 	for {
 		select {
 		case <-c.schedulerTimer.C:
+			c.listLocker.Lock()
 			for e := c.timerContiner.Front(); e != nil; e = e.Next() {
 				vnTimer := e.Value.(*GrapeTimer)
 				vnTimer.Execute()
@@ -85,21 +108,33 @@ func (c *GrapeScheduler) procScheduler() {
 					c.closedTimer <- vnTimer
 				}
 			}
+			c.listLocker.Unlock()
 			break
 		case <-c.done:
 			c.schedulerTimer.Stop()
 			return
 		case newTimer, ok := <-c.appendTimer:
+			if !ok {
+				return
+			}
+			c.listLocker.Lock()
 			c.timerContiner.PushBack(newTimer)
+			c.listLocker.Unlock()
 			break
 		case closeTimer, ok := <-c.closedTimer:
+			if !ok {
+				return
+			}
+			c.listLocker.Lock()
 			for e := c.timerContiner.Front(); e != nil; e = e.Next() {
 				vnTimer := e.Value.(*GrapeTimer)
 				if vnTimer.Id == closeTimer.Id {
+					vnTimer.Stop()
 					c.timerContiner.Remove(e)
 					break
 				}
 			}
+			c.listLocker.Unlock()
 			break
 		}
 	}
@@ -143,4 +178,8 @@ func NewTimeDataLoop(data string, count int, fn GrapeExecFn, args interface{}) i
 	GScheduler.appendTimer <- newTimer
 
 	return nowId
+}
+
+func StopTimer(Id int) {
+
 }
