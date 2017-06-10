@@ -5,7 +5,6 @@
 用于游戏服务端的优化设计，大量并行的时间调度方式。
 
 - Author: Koangel
-- Blog: [http://koangel.github.com](http://koangel.github.com)
 - Weibo: [@koangel](http://weibo.com/koangel)
 - Homepage: [个人博客](http://grapec.me)
 

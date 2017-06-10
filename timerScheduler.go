@@ -29,9 +29,7 @@ var UseAsyncExec bool = true
 var LocationFormat = "Asia/Shanghai"
 
 type GrapeScheduler struct {
-	done        chan bool        // 是否关闭
-	appendTimer chan *GrapeTimer // 增加
-	closedTimer chan *GrapeTimer // 关闭
+	done chan bool // 是否关闭
 
 	schedulerTimer *time.Ticker
 
@@ -60,8 +58,6 @@ func InitGrapeScheduler(t time.Duration, ars bool) {
 
 	GScheduler = &GrapeScheduler{
 		done:           make(chan bool),
-		appendTimer:    make(chan *GrapeTimer, 512),
-		closedTimer:    make(chan *GrapeTimer, 512),
 		timerContiner:  list.New(),
 		autoId:         1000,
 		schedulerTimer: time.NewTicker(chkTick),
@@ -84,7 +80,6 @@ func (c *GrapeScheduler) StopTimer(Id int) {
 
 		if vnTimer.Id == Id {
 			vnTimer.Stop()
-			c.closedTimer <- vnTimer
 			return
 		}
 	}
@@ -92,8 +87,6 @@ func (c *GrapeScheduler) StopTimer(Id int) {
 
 func (c *GrapeScheduler) procScheduler() {
 	defer func() {
-		close(c.appendTimer)
-		close(c.closedTimer)
 		close(c.done)
 
 		c.schedulerTimer.Stop()
