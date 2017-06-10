@@ -7,7 +7,7 @@
 - Author: Koangel
 - Blog: [http://koangel.github.com](http://koangel.github.com)
 - Weibo: [@koangel](http://weibo.com/koangel)
-- Homepage: [未完成](http://blog.grapego.vip)
+- Homepage: [个人博客](http://grapec.me)
 
 #### 简单介绍：
 - 通过命令格式创建`time.Time`
@@ -19,6 +19,11 @@
 - *可选择对调度器保存或内存执行[待实现]
 - *生成可保存的调度器字符串并反向分析他生成调度器[待实现]
 - 不依赖第三方库
+
+## **简单测试**
+
+100W个TIMER压入4秒钟，每个执行1S的话，完成执行大概不到4S，基本上达到性能需求。
+如果超过100W个并发TIMER，建议切分服务，所有执行采用异步行为。
 
 ## **安装方法**
 

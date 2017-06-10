@@ -5,6 +5,7 @@ package grapeTimer
 
 import (
 	"container/list"
+	"log"
 	"runtime"
 	"strconv"
 	"sync"
@@ -32,7 +33,7 @@ type GrapeScheduler struct {
 	appendTimer chan *GrapeTimer // 增加
 	closedTimer chan *GrapeTimer // 关闭
 
-	schedulerTimer *time.Timer
+	schedulerTimer *time.Ticker
 
 	timerContiner *list.List
 	autoId        int // 自动计数的Id
@@ -63,10 +64,11 @@ func InitGrapeScheduler(t time.Duration, ars bool) {
 		closedTimer:    make(chan *GrapeTimer, 512),
 		timerContiner:  list.New(),
 		autoId:         1000,
-		schedulerTimer: time.NewTimer(chkTick),
+		schedulerTimer: time.NewTicker(chkTick),
 	}
 
 	go GScheduler.procScheduler() // 启动执行线程
+	//go GScheduler.procAddTimer()
 }
 
 // 停止这个timer
@@ -101,41 +103,30 @@ func (c *GrapeScheduler) procScheduler() {
 		select {
 		case <-c.schedulerTimer.C:
 			c.listLocker.Lock()
-			for e := c.timerContiner.Front(); e != nil; e = e.Next() {
+			if CDebugMode {
+				log.Printf("[grapeTimer] Timer TickOnce |time:%v|", time.Now())
+			}
+
+			var nextE *list.Element = nil
+			for e := c.timerContiner.Front(); e != nil; e = nextE {
+				nextE = e.Next()
 				vnTimer := e.Value.(*GrapeTimer)
 				vnTimer.Execute()
 				if vnTimer.IsDestroy() {
-					c.closedTimer <- vnTimer
+					if CDebugMode {
+						log.Printf("[grapeTimer] Timer RemoveId:%v |time:%v|", vnTimer.Id, time.Now())
+					}
+					c.timerContiner.Remove(e) // 直接删除
 				}
+			}
+
+			if CDebugMode {
+				log.Printf("[grapeTimer] Timer TickOnce End |time:%v|", time.Now())
 			}
 			c.listLocker.Unlock()
 			break
 		case <-c.done:
-			c.schedulerTimer.Stop()
 			return
-		case newTimer, ok := <-c.appendTimer:
-			if !ok {
-				return
-			}
-			c.listLocker.Lock()
-			c.timerContiner.PushBack(newTimer)
-			c.listLocker.Unlock()
-			break
-		case closeTimer, ok := <-c.closedTimer:
-			if !ok {
-				return
-			}
-			c.listLocker.Lock()
-			for e := c.timerContiner.Front(); e != nil; e = e.Next() {
-				vnTimer := e.Value.(*GrapeTimer)
-				if vnTimer.Id == closeTimer.Id {
-					vnTimer.Stop()
-					c.timerContiner.Remove(e)
-					break
-				}
-			}
-			c.listLocker.Unlock()
-			break
 		}
 	}
 }
@@ -156,7 +147,11 @@ func NewTickerLoop(tick, count int, fn GrapeExecFn, args interface{}) int {
 		strconv.FormatInt(int64(tick), 10),
 		fn, args)
 
-	GScheduler.appendTimer <- newTimer
+	//GScheduler.appendTimer <- newTimer
+
+	GScheduler.listLocker.Lock()
+	GScheduler.timerContiner.PushBack(newTimer)
+	GScheduler.listLocker.Unlock()
 
 	return nowId
 }
@@ -175,7 +170,9 @@ func NewTimeDataLoop(data string, count int, fn GrapeExecFn, args interface{}) i
 		data,
 		fn, args)
 
-	GScheduler.appendTimer <- newTimer
+	GScheduler.listLocker.Lock()
+	GScheduler.timerContiner.PushBack(newTimer)
+	GScheduler.listLocker.Unlock()
 
 	return nowId
 }

@@ -49,7 +49,7 @@ func newTimer(Id, Mode, Count int, timeData string, fn GrapeExecFn, args interfa
 		exectFunc: fn,
 	}
 
-	newValue.nextTime()
+	newValue.makeNextTime()
 
 	return newValue
 }
@@ -61,7 +61,7 @@ func newTimerFromJson(s string, fn GrapeExecFn, args interface{}) *GrapeTimer {
 	if newValue != nil {
 		newValue.exectFunc = fn
 		newValue.execArgs = args
-		newValue.nextTime()
+		newValue.makeNextTime()
 	}
 
 	return newValue
@@ -118,22 +118,7 @@ func (c *GrapeTimer) IsDestroy() bool {
 	return false
 }
 
-/// 计算下一次时间
-func (c *GrapeTimer) nextTime() {
-	if c.IsDestroy() {
-		return
-	}
-
-	val := atomic.LoadInt32(&c.LoopCount)
-	// 先进行计数
-	if val != -1 {
-		atomic.AddInt32(&c.LoopCount, -1)
-		val = atomic.LoadInt32(&c.LoopCount)
-		if val <= 0 {
-			val = 0
-		}
-	}
-
+func (c *GrapeTimer) makeNextTime() {
 	if CDebugMode {
 		log.Printf("[grapeTimer] Timer NextTime:%v |time:%v|LoopCount:%v|", c.Id, time.Now(), c.LoopCount)
 	}
@@ -154,9 +139,28 @@ func (c *GrapeTimer) nextTime() {
 			c.tickSecond, _ = strconv.Atoi(c.TimeData)
 		}
 
-		c.NextTime = time.Now().Unix() + int64(c.tickSecond)
+		c.NextTime = time.Now().Add(time.Duration(c.tickSecond) * time.Microsecond).Unix()
 		break
 	}
+}
+
+/// 计算下一次时间
+func (c *GrapeTimer) nextTime() {
+	if c.IsDestroy() {
+		return
+	}
+
+	val := atomic.LoadInt32(&c.LoopCount)
+	// 先进行计数
+	if val != -1 {
+		atomic.AddInt32(&c.LoopCount, -1)
+		val = atomic.LoadInt32(&c.LoopCount)
+		if val <= 0 {
+			val = 0
+		}
+	}
+
+	c.makeNextTime()
 }
 
 func (c *GrapeTimer) Stop() {
