@@ -10,14 +10,14 @@ import (
 
 var RunTick = 0
 
-func OnOnceTick(timerId int, args interface{}) {
-	fmt.Printf("OnceTick:%v\n", args)
+func OnOnceTick(args1 int) {
+	fmt.Printf("OnceTick:%v\n", args1)
 
 	RunTick++
 }
 
-func OnOnceDayTick(timerId int, args interface{}) {
-	fmt.Printf("OnOnceDayTick:%v\n", args)
+func OnOnceDayTick(args1 int) {
+	fmt.Printf("OnOnceDayTick:%v\n", args1)
 
 	RunTick++
 }
