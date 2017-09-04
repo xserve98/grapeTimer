@@ -4,6 +4,8 @@
 
 用于游戏服务端的优化设计，大量并行的时间调度方式。
 
+目前可支持任意类型的函数(无返回值)以及任意参数数量和参数类型。
+
 - Author: Koangel
 - Weibo: [@koangel](http://weibo.com/koangel)
 - Homepage: [个人博客](http://grapec.me)
@@ -14,7 +16,8 @@
 - 快速创建调度器
 - 可控的调度器时间粒度
 - 高性能的并发调度
-- 时间周期，次数多模式可控`[支持每天，每周，每月]`
+- 支持任意类型函数的任意参数[自动推导参数以及类型]
+- 时间周期，次数多模式可控`[支持每天、每周、每月]`
 - *可选择对调度器保存或内存执行[待实现]
 - *生成可保存的调度器字符串并反向分析他生成调度器[待实现]
 - 不依赖第三方库
@@ -36,27 +39,27 @@ go get -u -v github.com/koangel/grapeTimer
 // 初始化一个1秒钟粒度的调度器，ars代表是否自动设置运行为并行模式
 grapeTimer.InitGrapeScheduler(1*time.Second, true)
 // 启动一个单次执行的调度器，1秒时间，基本tick单位为毫秒
-Id := grapeTimer.NewTickerOnce(1000, exec100, nil)
+Id := grapeTimer.NewTickerOnce(1000, exec100,"exec100 this arg1",2000,float32(200.5))
 // 启动一个1秒为周期的 循环timer 循环100次 -1为永久循环
-Id = grapeTimer.NewTickerLoop(1000,100, exec100Loop, nil)
+Id = grapeTimer.NewTickerLoop(1000,100, exec100Loop,"exec100Loop this arg1",2000,float32(200.5))
 // 启动一个每日规则的定时器，参数为args data
-Id = grapeTimer.NewTimeDataOnce("Day 13:59:59", exeDayTime, "args data")
+Id = grapeTimer.NewTimeDataOnce("Day 13:59:59", exeDayTime,"exeDayTime this arg1",2000,float32(200.5))
 // 启动一个每日循环规则的定时器，参数为args data 循环100次 -1为永久循环
-Id = grapeTimer.NewTimeDataLoop("Day 13:59:59",100, exeDayTime, "args data")
+Id = grapeTimer.NewTimeDataLoop("Day 13:59:59",100, exeDayTime,"exeDayTime this arg1",2000,float32(200.5))
 ```
 
-所有执行函数请保持以下函数格式：
+函数可以为任意类型的任意参数数量的函数，会自动保存参数以及数值，CALLBACK线程安全：
 ```
-func exec100(timerId int, args interface{}) {
-	fmt.Printf("exec100")
+func exec100(arg1 string, arg2 int, arg3 float32) {
+	fmt.Println(arg1, arg2, arg3)
 }
 
-func exec100Loop(timerId int, args interface{}) {
-	fmt.Printf("exec100Loop")
+func exec100Loop(arg1 string, arg2 int, arg3 float32) {
+	fmt.Println(arg1, arg2, arg3)
 }
 
-func exeDayTime(timerId int, args interface{}) {
-	fmt.Println("exeDayTime:", args)
+func exeDayTime(arg1 string, arg2 int, arg3 float32) {
+	fmt.Println(arg1, arg2, arg3)
 }
 ```
 ## **停止计时器**

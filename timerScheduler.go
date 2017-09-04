@@ -126,19 +126,19 @@ func (c *GrapeScheduler) procScheduler() {
 
 // 以下函数均为自动ID
 // 间隔为毫秒 运行一个tick并返回一个Id
-func NewTickerOnce(tick int, fn GrapeExecFn, args interface{}) int {
-	return NewTickerLoop(tick, LoopOnce, fn, args)
+func NewTickerOnce(tick int, fn GrapeExecFn, args ...interface{}) int {
+	return NewTickerLoop(tick, LoopOnce, fn, args...)
 }
 
 // 循环可控版本
-func NewTickerLoop(tick, count int, fn GrapeExecFn, args interface{}) int {
+func NewTickerLoop(tick, count int, fn GrapeExecFn, args ...interface{}) int {
 	nowId := GScheduler.autoId
 	GScheduler.autoId++
 	newTimer := newTimer(nowId,
 		timerTickMode,
 		count,
 		strconv.FormatInt(int64(tick), 10),
-		fn, args)
+		fn, args...)
 
 	//GScheduler.appendTimer <- newTimer
 
@@ -150,18 +150,18 @@ func NewTickerLoop(tick, count int, fn GrapeExecFn, args interface{}) int {
 }
 
 // 格式分析时钟
-func NewTimeDataOnce(data string, fn GrapeExecFn, args interface{}) int {
-	return NewTimeDataLoop(data, LoopOnce, fn, args)
+func NewTimeDataOnce(data string, fn GrapeExecFn, args ...interface{}) int {
+	return NewTimeDataLoop(data, LoopOnce, fn, args...)
 }
 
-func NewTimeDataLoop(data string, count int, fn GrapeExecFn, args interface{}) int {
+func NewTimeDataLoop(data string, count int, fn GrapeExecFn, args ...interface{}) int {
 	nowId := GScheduler.autoId
 	GScheduler.autoId++
 	newTimer := newTimer(nowId,
 		timerTickMode,
 		count,
 		data,
-		fn, args)
+		fn, args...)
 
 	GScheduler.listLocker.Lock()
 	GScheduler.timerContiner.PushBack(newTimer)

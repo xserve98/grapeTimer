@@ -5,8 +5,12 @@ package grapeTimer
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"log"
+	"reflect"
 	"strconv"
+	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -18,11 +22,18 @@ const (
 	timerTickMode
 )
 
-type GrapeExecFn func(timerId int, args interface{})
+type GrapeExecFn interface{}
 
 // 每个执行周期的执行者
 // 每个时间执行器
 // 可Json化并反Json化
+
+type grapeCallFunc struct {
+	exeCall GrapeExecFn
+	args    []reflect.Value
+	mux     sync.Mutex
+}
+
 type GrapeTimer struct {
 	Id        int    `json:"TimerId"`
 	NextTime  int64  `json:"nextUnix"`
@@ -30,13 +41,63 @@ type GrapeTimer struct {
 	TimeData  string `json:"timeData"`
 	LoopCount int32  `json:"loopCount"` // -1为无限执行
 
-	exectFunc  GrapeExecFn // 执行的函数 不保存
-	execArgs   interface{} // 执行参数 外部不可访问和改变
-	tickSecond int         // 临时使用 不可保存
+	cbFunc     *grapeCallFunc
+	tickSecond int // 临时使用 不可保存
+}
+
+func reflectFunc(fn GrapeExecFn, args ...interface{}) (cb *grapeCallFunc, err error) {
+	cb = nil
+	err = nil
+
+	t := reflect.TypeOf(fn) // 获得对象类型,从而知道有多少个参数
+
+	if t.Kind() != reflect.Func {
+		err = errors.New("callback must be a function")
+		return
+	}
+
+	argArr := []interface{}(args) // 先把参数都转成ARRAY
+
+	if len(argArr) < t.NumIn() {
+		err = errors.New("Not enough arguments")
+		return
+	}
+
+	// 解析全部参数
+	var in = make([]reflect.Value, t.NumIn()) //MAKE要保存的参数
+	for i := 0; i < t.NumIn(); i++ {
+		argType := t.In(i)
+		if argType != reflect.TypeOf(argArr[i]) {
+			err = errors.New(fmt.Sprintf("Value not found for type %v", argType))
+			return
+		}
+		in[i] = reflect.ValueOf(argArr[i]) // 参数保存下来
+	}
+
+	cb = &grapeCallFunc{
+		exeCall: fn,
+		args:    in,
+	}
+	return
+}
+
+func callFunc(timer *grapeCallFunc) {
+	// 此处锁一下，防止各种异常
+	timer.mux.Lock()
+	defer timer.mux.Unlock()
+
+	reflect.ValueOf(timer.exeCall).Call(timer.args) // 正确调用
 }
 
 /// 直接创建一个timer 内部函数
-func newTimer(Id, Mode, Count int, timeData string, fn GrapeExecFn, args interface{}) *GrapeTimer {
+func newTimer(Id, Mode, Count int, timeData string, fn GrapeExecFn, args ...interface{}) *GrapeTimer {
+
+	cbo, err := reflectFunc(fn, args...)
+	if err != nil {
+		fmt.Printf("error:%v", err)
+		return nil
+	}
+
 	newValue := &GrapeTimer{
 		Id:         Id,
 		RunMode:    Mode,
@@ -45,8 +106,7 @@ func newTimer(Id, Mode, Count int, timeData string, fn GrapeExecFn, args interfa
 		NextTime:   0,
 		tickSecond: 0,
 
-		execArgs:  args,
-		exectFunc: fn,
+		cbFunc: cbo,
 	}
 
 	newValue.makeNextTime()
@@ -55,12 +115,17 @@ func newTimer(Id, Mode, Count int, timeData string, fn GrapeExecFn, args interfa
 }
 
 /// 通过Json创建一个Timer 内部函数
-func newTimerFromJson(s string, fn GrapeExecFn, args interface{}) *GrapeTimer {
+func newTimerFromJson(s string, fn GrapeExecFn, args ...interface{}) *GrapeTimer {
+	cbo, err := reflectFunc(fn, args...)
+	if err != nil {
+		fmt.Printf("error:%v", err)
+		return nil
+	}
+
 	newValue := &GrapeTimer{}
 	newValue = newValue.ParserJson(s)
 	if newValue != nil {
-		newValue.exectFunc = fn
-		newValue.execArgs = args
+		newValue.cbFunc = cbo
 		newValue.makeNextTime()
 	}
 
@@ -79,9 +144,9 @@ func (c *GrapeTimer) Execute() {
 		}
 		// 执行一下
 		if UseAsyncExec {
-			go c.exectFunc(c.Id, c.execArgs)
+			go callFunc(c.cbFunc)
 		} else {
-			c.exectFunc(c.Id, c.execArgs)
+			callFunc(c.cbFunc)
 		}
 
 		if CDebugMode {
