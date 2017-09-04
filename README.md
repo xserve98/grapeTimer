@@ -1,3 +1,6 @@
+ [![Go Report Card](https://goreportcard.com/badge/github.com/koangel/grapeTimer)](https://goreportcard.com/badge/github.com/koangel/grapeTimer)
+
+---
 # **grapeTimer 时间调度器**
 
 一款粗粒度的时间调度器，可以帮你通过一些字符串快速并简单的创建时间任务。
