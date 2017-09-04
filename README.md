@@ -1,4 +1,4 @@
- [![Go Report Card](https://goreportcard.com/badge/github.com/koangel/grapeTimer)](https://goreportcard.com/badge/github.com/koangel/grapeTimer)
+ [![Go Report Card](https://goreportcard.com/badge/github.com/koangel/grapeTimer)](https://goreportcard.com/badge/github.com/koangel/grapeTimer)  [![Build Status](https://secure.travis-ci.org/bitly/grapeTimer.png)](http://travis-ci.org/bitly/grapeTimer)
 
 ---
 # **grapeTimer 时间调度器**
