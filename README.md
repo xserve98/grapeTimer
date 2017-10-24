@@ -9,6 +9,8 @@
 
 目前可支持任意类型的函数(无返回值)以及任意参数数量和参数类型。
 
+grapeTimer填坑完毕的库，已做测试。
+
 - Author: Koangel
 - Weibo: [@koangel](http://weibo.com/koangel)
 - Homepage: [个人博客](http://grapec.me)
@@ -21,8 +23,9 @@
 - 高性能的并发调度
 - 支持任意类型函数的任意参数[自动推导参数以及类型]
 - 时间周期，次数多模式可控`[支持每天、每周、每月]`
-- *可选择对调度器保存或内存执行[待实现]
-- *生成可保存的调度器字符串并反向分析他生成调度器[待实现]
+- 可以获取下一次执行时间的字符串`[支持自定义格式]`
+- 可选择对调度器保存或内存执行
+- 生成可保存的调度器字符串并反向分析他生成调度器[保存到Json再通过Json创建Timer]
 - 不依赖第三方库
 
 ## **简单测试**
@@ -33,7 +36,7 @@
 ## **安装方法**
 
 ```
-go get -u -v github.com/koangel/grapeTimer
+go get -u github.com/koangel/grapeTimer
 ```
 
 ## **基本用法**
@@ -49,6 +52,8 @@ Id = grapeTimer.NewTickerLoop(1000,100, exec100Loop,"exec100Loop this arg1",2000
 Id = grapeTimer.NewTimeDataOnce("Day 13:59:59", exeDayTime,"exeDayTime this arg1",2000,float32(200.5))
 // 启动一个每日循环规则的定时器，参数为args data 循环100次 -1为永久循环
 Id = grapeTimer.NewTimeDataLoop("Day 13:59:59",100, exeDayTime,"exeDayTime this arg1",2000,float32(200.5))
+// 通过json启动一个定时器
+Id = grapeTimer.NewFromJson(jsonBody,"exec100Loop this arg1",2000,float32(200.5))
 ```
 
 函数可以为任意类型的任意参数数量的函数，会自动保存参数以及数值，CALLBACK线程安全：
@@ -83,16 +88,26 @@ grapeTimer.LocationFormat = "Asia/Shanghai"
 grapeTimer.UseAsyncExec = true
 ```
 
+## **获取下一次执行的时间**
+
+```Go
+// 将自动返回的ID作为参数传入可停止持续循环的TIMER
+ nextTimeStr := grapeTimer.String(Id) // 标准格式获取
+ nextTimeStr = grapeTimer.Format("2006-01-02 15:04:05") // 通过自定义格式化获取
+ allTimer := grapeTimer.List() // 全部Id对应日期的下一次执行时间
+```
+
 ## **保存调度器**
 
-```
-待添加
+```Go
+nextJson := grapeTimer.ToJson(Id) // 获取单个调度器保存到JSON格式下
+allJson := grapeTimer.SaveAll()
 ```
 
 ## **生成调度器字符串**
 
-```
-待添加
+```Go
+Id = grapeTimer.NewFromJson(jsonBody,"exec100Loop this arg1",2000,float32(200.5))
 ```
 
 ## **可用格式说明**

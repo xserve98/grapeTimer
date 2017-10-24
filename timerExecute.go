@@ -43,6 +43,7 @@ type GrapeTimer struct {
 
 	cbFunc     *grapeCallFunc
 	tickSecond int // 临时使用 不可保存
+	nextVTime  time.Time
 }
 
 func reflectFunc(fn GrapeExecFn, args ...interface{}) (cb *grapeCallFunc, err error) {
@@ -132,6 +133,14 @@ func newTimerFromJson(s string, fn GrapeExecFn, args ...interface{}) *GrapeTimer
 	return newValue
 }
 
+func (c *GrapeTimer) String() string {
+	return c.nextVTime.Format(TimeFormat)
+}
+
+func (c *GrapeTimer) Format(layout string) string {
+	return c.nextVTime.Format(layout)
+}
+
 /// 执行Timer
 func (c *GrapeTimer) Execute() {
 	if c.IsDestroy() {
@@ -185,7 +194,7 @@ func (c *GrapeTimer) IsDestroy() bool {
 
 func (c *GrapeTimer) makeNextTime() {
 	if CDebugMode {
-		log.Printf("[grapeTimer] Timer NextTime:%v |time:%v|LoopCount:%v|", c.Id, time.Now(), c.LoopCount)
+		log.Printf("[grapeTimer] Timer Id:%v |time:%v|LoopCount:%v|", c.Id, time.Now(), c.LoopCount)
 	}
 
 	switch c.RunMode {
@@ -193,10 +202,11 @@ func (c *GrapeTimer) makeNextTime() {
 		vtime, err := Parser(c.TimeData)
 		if err != nil {
 			atomic.StoreInt32(&c.LoopCount, 0) // 出错销毁
-			log.Printf("[grapeTimer] Timer NextTime:%v |time:%v|Error:%v|", c.Id, time.Now(), err)
+			log.Printf("[grapeTimer] Timer Id:%v |time:%v|Error:%v|", c.Id, time.Now(), err)
 			return
 		}
 
+		c.nextVTime = *vtime
 		c.NextTime = vtime.Unix() // 生成下一次时间
 		break
 	case timerTickMode:
@@ -204,7 +214,9 @@ func (c *GrapeTimer) makeNextTime() {
 			c.tickSecond, _ = strconv.Atoi(c.TimeData)
 		}
 
-		c.NextTime = time.Now().Add(time.Duration(c.tickSecond) * time.Microsecond).Unix()
+		vtime := time.Now().Add(time.Duration(c.tickSecond) * time.Microsecond)
+		c.nextVTime = vtime
+		c.NextTime = vtime.Unix()
 		break
 	}
 }

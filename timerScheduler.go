@@ -7,7 +7,6 @@ import (
 	"container/list"
 	"log"
 	"runtime"
-	"strconv"
 	"sync"
 	"time"
 )
@@ -85,6 +84,97 @@ func (c *GrapeScheduler) StopTimer(Id int) {
 	}
 }
 
+// 列出全部timer的下一次执行周期
+func (c *GrapeScheduler) List() map[int]string {
+	var temp map[int]string = map[int]string{}
+
+	c.listLocker.Lock()
+	defer c.listLocker.Unlock()
+
+	for e := c.timerContiner.Front(); e != nil; e = e.Next() {
+		vnTimer := e.Value.(*GrapeTimer)
+		if vnTimer.IsDestroy() {
+			continue
+		}
+
+		temp[vnTimer.Id] = vnTimer.String()
+	}
+
+	return temp
+}
+
+func (c *GrapeScheduler) String(id int) string {
+	c.listLocker.Lock()
+	defer c.listLocker.Unlock()
+
+	for e := c.timerContiner.Front(); e != nil; e = e.Next() {
+		vnTimer := e.Value.(*GrapeTimer)
+		if vnTimer.IsDestroy() {
+			continue
+		}
+
+		if vnTimer.Id == id {
+			return vnTimer.String()
+		}
+	}
+
+	return ""
+}
+
+func (c *GrapeScheduler) Format(id int, layout string) string {
+	c.listLocker.Lock()
+	defer c.listLocker.Unlock()
+
+	for e := c.timerContiner.Front(); e != nil; e = e.Next() {
+		vnTimer := e.Value.(*GrapeTimer)
+		if vnTimer.IsDestroy() {
+			continue
+		}
+
+		if vnTimer.Id == id {
+			return vnTimer.Format(layout)
+		}
+	}
+
+	return ""
+}
+
+func (c *GrapeScheduler) ToJson(id int) string {
+	c.listLocker.Lock()
+	defer c.listLocker.Unlock()
+
+	for e := c.timerContiner.Front(); e != nil; e = e.Next() {
+		vnTimer := e.Value.(*GrapeTimer)
+		if vnTimer.IsDestroy() {
+			continue
+		}
+
+		if vnTimer.Id == id {
+			return vnTimer.toJson() // 参数转为JSON
+		}
+	}
+
+	return ""
+}
+
+func (c *GrapeScheduler) SaveAll() []string {
+	c.listLocker.Lock()
+	defer c.listLocker.Unlock()
+
+	var jsonArr []string = []string{}
+
+	for e := c.timerContiner.Front(); e != nil; e = e.Next() {
+		vnTimer := e.Value.(*GrapeTimer)
+		if vnTimer.IsDestroy() {
+			continue
+		}
+
+		jsonArr = append(jsonArr, vnTimer.toJson()) // 参数转为JSON
+	}
+
+	return jsonArr
+}
+
 func (c *GrapeScheduler) procScheduler() {
 	defer func() {
 		close(c.done)
@@ -122,54 +212,4 @@ func (c *GrapeScheduler) procScheduler() {
 			return
 		}
 	}
-}
-
-// 以下函数均为自动ID
-// 间隔为毫秒 运行一个tick并返回一个Id
-func NewTickerOnce(tick int, fn GrapeExecFn, args ...interface{}) int {
-	return NewTickerLoop(tick, LoopOnce, fn, args...)
-}
-
-// 循环可控版本
-func NewTickerLoop(tick, count int, fn GrapeExecFn, args ...interface{}) int {
-	nowId := GScheduler.autoId
-	GScheduler.autoId++
-	newTimer := newTimer(nowId,
-		timerTickMode,
-		count,
-		strconv.FormatInt(int64(tick), 10),
-		fn, args...)
-
-	//GScheduler.appendTimer <- newTimer
-
-	GScheduler.listLocker.Lock()
-	GScheduler.timerContiner.PushBack(newTimer)
-	GScheduler.listLocker.Unlock()
-
-	return nowId
-}
-
-// 格式分析时钟
-func NewTimeDataOnce(data string, fn GrapeExecFn, args ...interface{}) int {
-	return NewTimeDataLoop(data, LoopOnce, fn, args...)
-}
-
-func NewTimeDataLoop(data string, count int, fn GrapeExecFn, args ...interface{}) int {
-	nowId := GScheduler.autoId
-	GScheduler.autoId++
-	newTimer := newTimer(nowId,
-		timerTickMode,
-		count,
-		data,
-		fn, args...)
-
-	GScheduler.listLocker.Lock()
-	GScheduler.timerContiner.PushBack(newTimer)
-	GScheduler.listLocker.Unlock()
-
-	return nowId
-}
-
-func StopTimer(Id int) {
-
 }
