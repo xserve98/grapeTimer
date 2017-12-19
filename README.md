@@ -47,7 +47,7 @@ grapeTimer.InitGrapeScheduler(1*time.Second, true)
 // 启动一个单次执行的调度器，1秒时间，基本tick单位为毫秒
 Id := grapeTimer.NewTickerOnce(1000, exec100,"exec100 this arg1",2000,float32(200.5))
 // 启动一个单次执行的调度器，1秒时间，基本tick单位为毫秒 (需要返回参数的代码)
-Id := grapeTimer.NewTickerOnce(1000, exec100,"exec100 this arg1",2000,float32(200.5),func(v float32){
+Id := grapeTimer.NewTickerOnce(1000, exec100Result,"exec100 this arg1",2000,float32(200.5),func(v float32){
 	fmt.Println("i'm call back:", v)
 })
 // 启动一个1秒为周期的 循环timer 循环100次 -1为永久循环
