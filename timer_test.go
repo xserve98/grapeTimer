@@ -10,6 +10,24 @@ func CallBackOnce(arg1 string, arg2 int, arg3 float32) {
 	fmt.Println(arg1, arg2, arg3)
 }
 
+func CallBackResult(arg1 string, arg2 int, arg3 float32, resultcall func(val float32)) {
+	fmt.Println(arg1, arg2, arg3)
+
+	resultcall(arg3) // 调用CALLBACK去返回数值
+}
+
+func Test_CallResult(t *testing.T) {
+	cb, err := reflectFunc(CallBackResult, "this arg1", 2000, float32(300.5), func(v float32) {
+		fmt.Println("i'm call back:", v)
+	})
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	callFunc(cb)
+}
+
 func Test_CallReflect(t *testing.T) {
 	cb, err := reflectFunc(CallBackOnce, "this arg1", 2000, float32(300.5))
 	if err != nil {

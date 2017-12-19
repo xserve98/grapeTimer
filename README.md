@@ -46,6 +46,10 @@ go get -u github.com/koangel/grapeTimer
 grapeTimer.InitGrapeScheduler(1*time.Second, true)
 // 启动一个单次执行的调度器，1秒时间，基本tick单位为毫秒
 Id := grapeTimer.NewTickerOnce(1000, exec100,"exec100 this arg1",2000,float32(200.5))
+// 启动一个单次执行的调度器，1秒时间，基本tick单位为毫秒 (需要返回参数的代码)
+Id := grapeTimer.NewTickerOnce(1000, exec100,"exec100 this arg1",2000,float32(200.5),func(v float32){
+	fmt.Println("i'm call back:", v)
+})
 // 启动一个1秒为周期的 循环timer 循环100次 -1为永久循环
 Id = grapeTimer.NewTickerLoop(1000,100, exec100Loop,"exec100Loop this arg1",2000,float32(200.5))
 // 启动一个每日规则的定时器，参数为args data
@@ -61,6 +65,14 @@ Id = grapeTimer.NewFromJson(jsonBody,"exec100Loop this arg1",2000,float32(200.5)
 func exec100(arg1 string, arg2 int, arg3 float32) {
 	fmt.Println(arg1, arg2, arg3)
 }
+
+// 需要返回参数
+func exec100Result(arg1 string, arg2 int, arg3 float32,rscall func(v float32)) {
+	fmt.Println(arg1, arg2, arg3)
+
+	rscall(arg3)
+}
+
 
 func exec100Loop(arg1 string, arg2 int, arg3 float32) {
 	fmt.Println(arg1, arg2, arg3)
