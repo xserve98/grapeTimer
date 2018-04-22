@@ -31,6 +31,7 @@ type GrapeExecFn interface{}
 type grapeCallFunc struct {
 	exeCall GrapeExecFn
 	args    []reflect.Value
+	status  int32
 	mux     sync.Mutex
 }
 
@@ -78,6 +79,7 @@ func reflectFunc(fn GrapeExecFn, args ...interface{}) (cb *grapeCallFunc, err er
 	cb = &grapeCallFunc{
 		exeCall: fn,
 		args:    in,
+		status:  0,
 	}
 	return
 }
@@ -87,7 +89,14 @@ func callFunc(timer *grapeCallFunc) {
 	timer.mux.Lock()
 	defer timer.mux.Unlock()
 
+	if timer.status >= 1 && SkipWaitTask {
+		return
+	}
+
+	// 否则只计数不处理
+	timer.status++
 	reflect.ValueOf(timer.exeCall).Call(timer.args) // 正确调用
+	timer.status--
 }
 
 /// 直接创建一个timer 内部函数
@@ -151,6 +160,7 @@ func (c *GrapeTimer) Execute() {
 		if CDebugMode {
 			log.Printf("[grapeTimer] Timer Execute:%v |time:%v| Begin", c.Id, time.Now())
 		}
+
 		// 执行一下
 		if UseAsyncExec {
 			go callFunc(c.cbFunc)

@@ -23,6 +23,10 @@ var CDebugMode bool = true
 // 创建GO去执行到期的任务 默认开启
 var UseAsyncExec bool = true
 
+// 如果上次任务未执行完成，默认方式还是跳过
+// 默认跳过,单协程模式下，不处理
+var SkipWaitTask bool = true
+
 // 默认的通用时区字符串，通过修改他会更改分析后的日期结果
 // 默认为上海时区
 var LocationFormat = "Asia/Shanghai"
