@@ -223,8 +223,8 @@ func (c *GrapeTimer) makeNextTime() {
 		if c.tickSecond == 0 {
 			c.tickSecond, _ = strconv.Atoi(c.TimeData)
 		}
-
-		vtime := time.Now().Add(time.Duration(c.tickSecond) * time.Microsecond)
+		vtime := time.Now().Add(time.Duration(c.tickSecond) * time.Millisecond)
+		//vtime := time.Now().Add(time.Duration(c.tickSecond) * time.Microsecond) //微秒？
 		c.nextVTime = vtime
 		c.NextTime = vtime.Unix()
 		break
